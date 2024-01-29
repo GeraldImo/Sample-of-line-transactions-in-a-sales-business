@@ -1,0 +1,185 @@
+
+select * from PurchaseTrans
+
+--to select data from a distinct entity 'Canada' form a table:
+
+select AccountNumber, Country from PurchaseTrans where Country='Germany'
+
+
+--to create an alias (best for joining tables): 
+select pt.AccountNumber, pt.Supplier, pt.Address, pt.City from PurchaseTrans pt
+
+select pt.AccountNumber from PurchaseTrans pt
+
+select xx.Last_name, xx.First_name from Supermarket..CustomerData as xx
+
+select AccountNumber as ViewColumn from PurchaseTrans 
+
+--making calculations from tables: 
+
+--PRODUCT (MULTIPLICATION):
+
+select pt.TransID as TransactionNo, pt.AccountNumber, pt.City, pt.UnitPrice, pt.OrderQty*pt.UnitPrice as [Line Amount] from PurchaseTrans pt
+
+--SUM:
+
+select St_ID, student_name, F14,(maths+english+chemistry+physics+biology+agric+[statistics]+literature+[geography]+arts+german) as TotalScore from AlexUni..Scores au order by TotalScore desc
+
+select au.St_ID, au.student_name,F14,(au.maths+au.english+au.chemistry+au.physics+au.biology+au.agric+au.[statistics]+au.literature+au.[geography]+au.arts+au.german) as TotalScore from AlexUni..Scores au order by TotalScore desc
+
+--MEAN:
+
+select student_name, (maths+english+chemistry+physics+biology+agric+[statistics]+literature+[geography]+arts+german) as GrossScore from AlexUni..Scores au
+
+select student_name, F14 / 11 AS mean_score FROM AlexUni..Scores
+
+select t.City, t.Employee, t.AccountNumber,t.UnitPrice,t.UnitPriceDiscount, t.OrderQty, t.UnitPrice*t.OrderQty as LineAmountb4Discount  
+--t.UnitPrice*t.OrderQty*(1-t.unitpricediscount)
+, ( 40/100*(t.UnitPrice*t.OrderQty)) from PurchaseTrans t
+where t.Country='Germany'
+
+
+/** --To determine the amont payable after discount (Using Factorized Form):
+
+--u*q*(1-unitpricediscount)
+
+using distributive property:
+
+(u*q)-(%discount*u*q)
+**/ 
+
+select t.City, t.Employee, t.AccountNumber,t.UnitPrice,t.UnitPriceDiscount, t.OrderQty, t.UnitPrice*t.OrderQty as BeforDiscount
+, t.Unitprice*t.OrderQty*(1-t.UnitPriceDiscount) from PurchaseTrans t  
+
+--To determine the amont payable after discount (using distributive property):
+
+--(u*q)-(%discount*u*q) 
+
+select City, Employee, AccountNumber, UnitPrice, UnitPriceDiscount, OrderQty, UnitPrice*OrderQty as BeforeDiscount
+, (Unitprice*OrderQty)-(0.40*UnitPrice*OrderQty) as AfterDiscount from PurchaseTrans 
+bu
+
+select City, Employee, AccountNumber, UnitPrice, UnitPriceDiscount, OrderQty, UnitPrice*OrderQty as BeforeDiscount
+, (Unitprice*OrderQty)-(0.4*UnitPrice*OrderQty) as AfterDiscount from PurchaseTrans  
+
+/* a = b
+	a<>b = Not equal
+	a>=b greater than or equal to
+	a > b greater than 
+	a < b less than
+	a<= b less than or equal to b
+*/
+
+select * from PurchaseTrans where OrderQty<>4
+
+--to write a query to vizualize all Firstnames containing the letter 'M'sorted by lastname 
+
+select student_name from AlexUni..Scores where student_name LIKE '%M%' order by english
+
+select * from AlexUni..Scores
+
+--to join names that are seperated 
+
+select concat(first_name,' ', last_name) as FullName From Supermarket..CustomerData
+--or
+select concat(first_name,',', last_name) as FullName From Supermarket..CustomerData
+where ManagerID IN (select EmployeeID from Employee where ManagerID is NULL) 
+
+select * from [SQL Essentials]..PurchaseTrans   where PostalCode is null
+
+select * , len(postalcode) from [SQL Essentials]..PurchaseTrans  
+
+
+select * , PostalCode from [SQL Essentials]..PurchaseTrans 
+
+--to create new column and edit 'NULL':
+
+select transID, postalCode, isnull(postalcode, 'empty') from PurchaseTrans
+
+--execute and compare the following (4 syntax) below:
+
+select country, sum(OrderQty) as SumOfOrderQty from PurchaseTrans 
+Group By country
+
+select class, sum(OrderQty) as SumOfOrderQty from PurchaseTrans 
+Group By class
+
+select country, class, sum(OrderQty) as SumOfOrderQty from PurchaseTrans
+group by grouping sets(country, class) 
+
+select country, class, sum(OrderQty) as SumOfOrderQty from PurchaseTrans
+group by country, class 
+order by Country
+
+
+--correlated subquery (if main query attribute is refernced in subquery). ie: select column1, cloumn2 from (a Query in bracket)
+
+select * from PurchaseTrans p
+where p.SpecialOfferID not in ( select s.SpecialOfferID from SpecialOffer s where p.country='Germany' )
+
+-- see correlated subquery example from ChatGPT: 
+
+SELECT column_name1, column_name2
+FROM table_name1
+WHERE column_name1 IN (SELECT column_name1
+                       FROM table_name2
+                       WHERE table_name2.column_name2 = table_name1.column_name2);
+
+--ie:
+SELECT country, ListPrice
+FROM PurchaseTrans a
+WHERE country IN (SELECT country
+                       FROM PurchaseTrans b
+                       WHERE b.country = a.country);
+
+--uncorrelated subquery:
+--a querry that involves no reference from the main querry. In other words, the subquery does not depend on the outer query for its values; 
+--it can be executed on its own and returns a result that is not influenced by the values in the outer query.
+
+select * from PurchaseTrans p
+where p.SpecialOfferID 
+not in ( select s.SpecialOfferID from SpecialOffer s) 
+
+
+--correlated subquery: 
+--if main query attribute is refernced in subquery
+
+select * from PurchaseTrans p 
+	where p.SpecialofferID not in 
+	( select s.specialOfferID from SpecialOffer s 
+	Where p.SpecialOfferID=s.SpecialOfferID and p.Country='Germany')
+
+--Business Chioma
+select ganny.Country,ganny.StateProvince, ganny.LineAmount, ganny.LineAmount/ganny.OverallSales*100 as PercentageOfTotal from 
+(select p.Country, p.StateProvince, sum(UnitPrice*Qty) as LineAmount,
+(select sum(unitprice*OrderQty) from PurchaseTrans c ) as GrandTotal from PurchaseTrans p 
+group by p.Country, p.StateProvince ) ganny where ganny.Country='Germany'
+
+
+
+select Country, StateProvince, sum(UnitPrice*OrderQty) as LineAmount,
+(select sum(unitprice*OrderQty) from PurchaseTrans ) as OverallSales
+from PurchaseTrans
+group by Country, StateProvince 
+
+
+
+from PurchaseTrans
+group by Country, StateProvince
+
+--------
+
+Select * from AlexUni..Scores
+
+select student_name, maths, english, chemistry, physics, biology
+from AlexUni..Scores a
+where St_ID IN (SELECT St_ID
+                       FROM AlexUni..Scores b
+                       WHERE b.St_ID = a.St_ID);
+
+Create Table AlexUni.dbo.Science 
+SET student_name, maths, english, chemistry, physics, biology
+	from AlexUni..Scores a
+	where St_ID IN (SELECT St_ID
+                       FROM AlexUni..Scores b
+                       WHERE b.St_ID = a.St_ID);
